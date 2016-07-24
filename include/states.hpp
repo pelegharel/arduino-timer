@@ -1,13 +1,17 @@
+#pragma once
+
 #include <algorithm>
 #include <array>
 #include <chrono>
 #include <tuple>
 #include <boost/optional.hpp>
+#include "checkChrono.hpp"
+#include "utils.hpp"
 
 namespace arduinoTimer {
 
 enum class LightStates {
-  on, off, flicker
+  on, flicker
 };
 
 struct LightState {
@@ -43,7 +47,62 @@ template <int lightNum, int stateNum> class LightsStates {
     });
   }
 
-  LightState getState() const {}
+  boost::optional<int> getLitLight(const TimedState& state) const {
+
+    auto lastValue = std::get<1>(state);
+
+    auto pos = std::find_if(lastValue.begin(), lastValue.end(), [](auto x) {
+      return x;
+    });
+
+    if (pos == lastValue.end()) {
+      return boost::none;
+    }
+
+    return pos - lastValue.begin();
+  }
+
+  template <typename DurationUnit, int flickerTime>
+  boost::optional<LightState> getState() const {
+
+    static_assert(argumentChecks::is_chrono_duration<DurationUnit>::value,
+                  "DurationUnit must be std::chrono::duration");
+
+    std::array<boost::optional<int>, stateNum> litLights;
+    std::transform(states.begin(), states.end(), litLights.begin(),
+                   [this](const auto & stateOption) {
+      auto res = utils::transform(stateOption, [this](const auto & state) {
+        return this->getLitLight(state);
+      });
+      boost::optional<int> ret = (!res) ? boost::none : *res;
+      return ret;
+    });
+
+    auto flickerDuration = DurationUnit(flickerTime);
+
+    if (std::all_of(states.begin(), states.begin() + 2,
+                    [flickerDuration](const auto x) {
+      return x && std::get<0>(*x) < flickerDuration;
+    })) {
+      auto last0 = std::get<0>(litLights);
+      auto last1 = std::get<1>(litLights);
+      auto last2 = std::get<2>(litLights);
+
+      if (last0 == last2 && last0 != last1) {
+        if (last0 == boost::none) {
+          return LightState { *last1, LightStates::flicker };
+        } else if (last1 == boost::none) {
+          return LightState { *last0, LightStates::flicker };
+        }
+      }
+    }
+
+    auto lastLit = std::get<0>(litLights);
+
+    return utils::transform(lastLit, [](auto x) {
+      return LightState { x, LightStates::on };
+    });
+  }
 };
 
 }
