@@ -16,21 +16,17 @@ int main(int argc, char** argv) {
   states.update(1s, {
     false, false, false
   });
-  states.update(1s, {
+  states.update(500ms, {
+    false, true, false
+  });
+  states.update(400ms, {
     false, true, false
   });
   states.update(1s, {
     false, false, false
   });
 
-  boost::optional<int> a = 1;
-  a = boost::none;
-  auto b = utils::transform(a, [](auto a) {
-    return "pozac";
-  });
-
-  std::cout << b << std::endl;
-  auto rrr = states.getState<seconds, 1>();
+  auto rrr = states.getState(1s, 2h);
   if (rrr) {
     cout << rrr->light << endl;
   } else {

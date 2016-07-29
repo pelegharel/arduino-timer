@@ -4,7 +4,7 @@
 namespace utils {
 
 template <typename T, typename Func>
-auto transform(boost::optional<T> inOption, Func callback)
+auto transform(const boost::optional<T>& inOption, const Func& callback)
     ->boost::optional<decltype(callback (*inOption))> {
   if (!inOption) {
     return boost::none;

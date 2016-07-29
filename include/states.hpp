@@ -25,7 +25,8 @@ template <int lightNum, int stateNum> class LightsStates {
   std::array<boost::optional<TimedState>, stateNum> states;
 
  public:
-  auto& update(std::chrono::nanoseconds timePassed, const LightsState& state) {
+  auto& update(const std::chrono::nanoseconds& timePassed,
+               const LightsState& state) {
     auto& lastState = std::get<0>(states);
 
     if (!lastState || std::get<1>(*lastState) != state) {
@@ -62,11 +63,14 @@ template <int lightNum, int stateNum> class LightsStates {
     return pos - lastValue.begin();
   }
 
-  template <typename DurationUnit, int flickerTime>
-  boost::optional<LightState> getState() const {
+  template <typename DurationUnitMin, typename DurationUnitMax>
+  boost::optional<LightState> getState(DurationUnitMin minFlickerTime,
+                                       DurationUnitMax maxFlickerTime) const {
 
-    static_assert(argumentChecks::is_chrono_duration<DurationUnit>::value,
-                  "DurationUnit must be std::chrono::duration");
+    static_assert(
+        argumentChecks::is_chrono_duration<DurationUnitMin>::value &&
+            argumentChecks::is_chrono_duration<DurationUnitMax>::value,
+        "DurationUnit must be std::chrono::duration");
 
     std::array<boost::optional<int>, stateNum> litLights;
     std::transform(states.begin(), states.end(), litLights.begin(),
@@ -74,16 +78,21 @@ template <int lightNum, int stateNum> class LightsStates {
       auto res = utils::transform(stateOption, [this](const auto & state) {
         return this->getLitLight(state);
       });
-      boost::optional<int> ret = (!res) ? boost::none : *res;
+      boost::optional<int> ret = res.value_or(boost::none);
       return ret;
     });
 
-    auto flickerDuration = DurationUnit(flickerTime);
+    bool isUnderFlickerTime =
+        std::all_of(states.begin(), states.begin() + 2,
+                    [minFlickerTime, maxFlickerTime](const auto & x) {
+      return utils::transform(x,
+                              [minFlickerTime, maxFlickerTime](const auto & x) {
+        auto t = std::get<0>(x);
+        return minFlickerTime <= t && t <= maxFlickerTime;
+      }).value_or(false);
+    });
 
-    if (std::all_of(states.begin(), states.begin() + 2,
-                    [flickerDuration](const auto x) {
-      return x && std::get<0>(*x) < flickerDuration;
-    })) {
+    if (isUnderFlickerTime) {
       auto last0 = std::get<0>(litLights);
       auto last1 = std::get<1>(litLights);
       auto last2 = std::get<2>(litLights);
