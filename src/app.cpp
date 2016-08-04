@@ -10,6 +10,7 @@
 using namespace std::chrono;
 using namespace arduinoTimer;
 using namespace std;
+using namespace utils;
 
 int main(int argc, char** argv) {
   LightsStates<3, 10> states;
@@ -27,18 +28,9 @@ int main(int argc, char** argv) {
   });
 
   auto rrr = states.getState(1s, 2h);
-  if (rrr) {
-    cout << rrr->light << endl;
-  } else {
-    cout << "nones" << endl;
-  }
+  cout << transform(rrr, [](const auto & x) {
+    return x.light;
+  }) << endl;
 
-  //  auto s = states.getState<seconds, 2>();
-
-  // if (s) {
-  //   std::cout << s->light << std::endl;
-  // } else {
-  //   std::cout << "none" << std::endl;
-  // }
   return 0;
 }

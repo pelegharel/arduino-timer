@@ -29,12 +29,13 @@ template <int lightNum, int stateNum> class LightsStates {
                const LightsState& state) {
     auto& lastState = std::get<0>(states);
 
-    if (!lastState || std::get<1>(*lastState) != state) {
+    if (!utils::transform(lastState, [state](const auto & x) {
+      return std::get<1>(x) == state;
+    }).value_or(false)) {
       std::rotate(states.begin(), states.end() - 1, states.end());
       std::get<0>(states) = std::make_tuple(timePassed, state);
     } else {
-      auto& lastTime = std::get<0>(*lastState);
-      lastTime = timePassed + lastTime;
+      std::get<0>(*lastState) += timePassed;
     }
 
     return *this;
@@ -97,7 +98,7 @@ template <int lightNum, int stateNum> class LightsStates {
       auto last1 = std::get<1>(litLights);
       auto last2 = std::get<2>(litLights);
 
-      if (last0 == last2 && last0 != last1) {
+      if (last0 == last2) {
         if (last0 == boost::none) {
           return LightState { *last1, LightStates::flicker };
         } else if (last1 == boost::none) {
