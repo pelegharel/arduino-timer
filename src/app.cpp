@@ -1,5 +1,5 @@
 #include "utils.hpp"
-#include "states.hpp"
+#include "lightStates.hpp"
 #include <chrono>
 #include <iostream>
 #include <boost/optional.hpp>
@@ -25,11 +25,22 @@ int main(int argc, char** argv) {
   states.update(1s, {
     false, false, false
   });
+  states.update(1h, {
+    true, false, false
+  });
+  states.update(1h, {
+    false, false, true
+  });
+  states.update(1h, {
+    false, false, false
+  });
+  states.update(1h, {
+    false, false, true
+  });
 
-  auto rrr = states.getState(500ms, 2h);
-  cout << transform(rrr, [](const auto & x) {
-    return x.light;
-  }) << endl;
+  for (const auto& x : states.getLitLights()) {
+    cout << x << endl;
+  }
 
   return 0;
 }

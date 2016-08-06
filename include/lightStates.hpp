@@ -20,6 +20,7 @@ struct LightState {
 };
 
 template <int lightNum, int stateNum> class LightsStates {
+ private:
   using LightsState = std::array<bool, lightNum>;
   using TimedState = std::tuple<std::chrono::nanoseconds, LightsState>;
   std::array<boost::optional<TimedState>, stateNum> states;
