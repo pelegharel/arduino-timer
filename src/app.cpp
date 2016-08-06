@@ -5,7 +5,6 @@
 #include <boost/optional.hpp>
 #include <boost/optional/optional_io.hpp>
 #include "utils.hpp"
-#include "checkChrono.hpp"
 
 using namespace std::chrono;
 using namespace arduinoTimer;
@@ -27,7 +26,7 @@ int main(int argc, char** argv) {
     false, false, false
   });
 
-  auto rrr = states.getState(1s, 2h);
+  auto rrr = states.getState(500ms, 2h);
   cout << transform(rrr, [](const auto & x) {
     return x.light;
   }) << endl;

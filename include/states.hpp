@@ -5,7 +5,7 @@
 #include <chrono>
 #include <tuple>
 #include <boost/optional.hpp>
-#include "checkChrono.hpp"
+#include <type_traits>
 #include "utils.hpp"
 
 namespace arduinoTimer {
@@ -49,39 +49,48 @@ template <int lightNum, int stateNum> class LightsStates {
     });
   }
 
-  boost::optional<int> getLitLight(const TimedState& state) const {
+  static boost::optional<int> getLitLight(const TimedState& state) {
 
-    auto lastValue = std::get<1>(state);
+    auto stateValue = std::get<1>(state);
 
-    auto pos = std::find_if(lastValue.begin(), lastValue.end(), [](auto x) {
+    auto pos = std::find_if(stateValue.begin(), stateValue.end(), [](auto x) {
       return x;
     });
 
-    if (pos == lastValue.end()) {
+    if (pos == stateValue.end()) {
       return boost::none;
     }
 
-    return pos - lastValue.begin();
+    return pos - stateValue.begin();
+  }
+
+  /**
+  * Returns lit light of each state.
+  * If a state is none are there are no lit lights,
+  * boost::none is returned.
+  * Otherwise, index of lit light is returned.
+  */
+  std::array<boost::optional<int>, stateNum> getLitLights() const {
+
+    decltype(getLitLights()) litLights;
+    std::transform(states.begin(), states.end(), litLights.begin(),
+                   [this](const auto & stateOption)->boost::optional<int> {
+      return utils::transform(stateOption, [this](const auto & state) {
+        return this->getLitLight(state);
+      }).value_or(boost::none);
+    });
+
+    return litLights;
   }
 
   template <typename DurationUnitMin, typename DurationUnitMax>
   boost::optional<LightState> getState(DurationUnitMin minFlickerTime,
                                        DurationUnitMax maxFlickerTime) const {
-
     static_assert(
-        argumentChecks::is_chrono_duration<DurationUnitMin>::value &&
-            argumentChecks::is_chrono_duration<DurationUnitMax>::value,
-        "DurationUnit must be std::chrono::duration");
-
-    std::array<boost::optional<int>, stateNum> litLights;
-    std::transform(states.begin(), states.end(), litLights.begin(),
-                   [this](const auto & stateOption) {
-      auto res = utils::transform(stateOption, [this](const auto & state) {
-        return this->getLitLight(state);
-      });
-      boost::optional<int> ret = res.value_or(boost::none);
-      return ret;
-    });
+        std::is_convertible<DurationUnitMin, std::chrono::nanoseconds>::value &&
+            std::is_convertible<DurationUnitMax,
+                                std::chrono::nanoseconds>::value,
+        "DurationUnit must be convertable to std::chrono::nanoseconds");
 
     bool isUnderFlickerTime =
         std::all_of(states.begin(), states.begin() + 2,
@@ -92,6 +101,8 @@ template <int lightNum, int stateNum> class LightsStates {
         return minFlickerTime <= t && t <= maxFlickerTime;
       }).value_or(false);
     });
+
+    auto litLights = getLitLights();
 
     if (isUnderFlickerTime) {
       auto last0 = std::get<0>(litLights);
