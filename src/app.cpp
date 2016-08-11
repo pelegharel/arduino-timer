@@ -5,6 +5,7 @@
 #include <boost/optional.hpp>
 #include <boost/optional/optional_io.hpp>
 #include "utils.hpp"
+#include "timerState.hpp"
 
 using namespace std::chrono;
 using namespace arduinoTimer;
@@ -42,5 +43,6 @@ int main(int argc, char** argv) {
     cout << x << endl;
   }
 
+  LightOnTimerState a(2);
   return 0;
 }

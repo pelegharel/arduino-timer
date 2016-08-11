@@ -84,14 +84,9 @@ template <int lightNum, int stateNum> class LightsStates {
     return litLights;
   }
 
-  template <typename DurationUnitMin, typename DurationUnitMax>
-  boost::optional<LightState> getState(DurationUnitMin minFlickerTime,
-                                       DurationUnitMax maxFlickerTime) const {
-    static_assert(
-        std::is_convertible<DurationUnitMin, std::chrono::nanoseconds>::value &&
-            std::is_convertible<DurationUnitMax,
-                                std::chrono::nanoseconds>::value,
-        "DurationUnit must be convertable to std::chrono::nanoseconds");
+  boost::optional<LightState> getState(
+      const std::chrono::nanoseconds& minFlickerTime,
+      const std::chrono::nanoseconds& maxFlickerTime) const {
 
     bool isUnderFlickerTime =
         std::all_of(states.begin(), states.begin() + 2,
