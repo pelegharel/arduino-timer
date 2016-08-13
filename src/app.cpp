@@ -43,6 +43,6 @@ int main(int argc, char** argv) {
     cout << x << endl;
   }
 
-  LightOnTimerState a(2);
+  LightOnTimerState<3> a(2);
   return 0;
 }

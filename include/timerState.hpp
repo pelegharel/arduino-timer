@@ -1,38 +1,33 @@
 #pragma once
 
 #include <chrono>
-#include <tuple>
 #include <memory>
 #include <boost/optional.hpp>
+#include <array>
 #include "lightStates.hpp"
 #include "utils.hpp"
 
 namespace arduinoTimer {
-class TimerState {
 
+using nanos = std::chrono::nanoseconds;
+
+template <int lightNum> class TimerState {
  public:
-  using nanos = std::chrono::nanoseconds;
-  virtual std::tuple<std::unique_ptr<TimerState>, boost::optional<nanos>>
-      nextState(const boost::optional<LightState>& light, const nanos& lastTime,
-                const nanos& timeDelta) = 0;
+  virtual boost::optional<nanos> nextTimerTime(
+      const std::array<nanos, lightNum>& nanosForLigtht,
+      const boost::optional<nanos>& lastTimerTime, const nanos& deltaTime) = 0;
 };
 
-class OffTimerState : public TimerState {
-  std::tuple<std::unique_ptr<TimerState>, boost::optional<nanos>> nextState(
-      const boost::optional<LightState>& lightState, const nanos& lastTime,
-      const nanos& timeDelta) {
+template <int lightNum> class OffTimerState : public TimerState<lightNum> {
 
-    return utils::transform(lightState, [](const auto & x) {
-      return std::make_tuple(
-          std::unique_ptr<TimerState>(new OffTimerState()),
-          boost::optional<nanos>(std::chrono::nanoseconds(0)));
-    })
-        .value_or(std::make_tuple(
-            std::unique_ptr<TimerState>(new OffTimerState()), boost::none));
+  boost::optional<nanos> nextTimerTime(
+      const std::array<nanos, lightNum>& nanosForLigtht,
+      const boost::optional<nanos>& lastTimerTime, const nanos& deltaTime) {
+    return boost::none;
   }
 };
 
-class LightTimerState : public TimerState {
+template <int lightNum> class LightTimerState : public TimerState<lightNum> {
  protected:
   const int lightIndex;
 
@@ -40,38 +35,29 @@ class LightTimerState : public TimerState {
   LightTimerState(int index) : lightIndex(index) {}
 };
 
-class LightOnTimerState : public LightTimerState {
+template <int lightNum>
+class LightOnTimerState : public LightTimerState<lightNum> {
  public:
-  LightOnTimerState(int index) : LightTimerState(index) {}
-  std::tuple<std::unique_ptr<TimerState>, boost::optional<nanos>> nextState(
-      const boost::optional<LightState>& lightState, const nanos& lastTime,
-      const nanos& timeDelta) {
+  LightOnTimerState(int index) : LightTimerState<lightNum>(index) {}
 
-    return utils::transform(lightState, [](const auto & x) {
-      return std::make_tuple(
-          std::unique_ptr<TimerState>(new OffTimerState()),
-          boost::optional<nanos>(std::chrono::nanoseconds(0)));
-    })
-        .value_or(
-            std::make_tuple(std::unique_ptr<TimerState>(this), boost::none));
+  boost::optional<nanos> nextTimerTime(
+      const std::array<nanos, lightNum>& nanosForLigtht,
+      const boost::optional<nanos>& lastTimerTime, const nanos& deltaTime) {
+    return lastTimerTime.value_or(nanosForLigtht[this->lightIndex]);
   }
+
 };
 
-class LightFlickerTimerState : public LightTimerState {
+template <int lightNum>
+class LightFlickerTimerState : public LightTimerState<lightNum> {
  public:
-  LightFlickerTimerState(int index) : LightTimerState(index) {}
-
-  std::tuple<std::unique_ptr<TimerState>, boost::optional<nanos>> nextState(
-      const boost::optional<LightState>& lightState, const nanos& lastTime,
-      const nanos& timeDelta) {
-
-    return utils::transform(lightState, [](const auto & x) {
-      return std::make_tuple(
-          std::unique_ptr<TimerState>(new OffTimerState()),
-          boost::optional<nanos>(std::chrono::nanoseconds(0)));
-    })
-        .value_or(
-            std::make_tuple(std::unique_ptr<TimerState>(this), boost::none));
+  LightFlickerTimerState(int index) : LightTimerState<lightNum>(index) {}
+  boost::optional<nanos> nextTimerTime(
+      const std::array<nanos, lightNum>& nanosForLigtht,
+      const boost::optional<nanos>& lastTimerTime, const nanos& deltaTime) {
+    return utils::transform(lastTimerTime, [deltaTime](const auto & t) {
+      return t - deltaTime;
+    }).value_or(nanosForLigtht[this->lightIndex]);
   }
 };
 }
