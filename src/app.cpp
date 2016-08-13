@@ -6,6 +6,7 @@
 #include <boost/optional/optional_io.hpp>
 #include "utils.hpp"
 #include "timerState.hpp"
+#include "stater.hpp"
 
 using namespace std::chrono;
 using namespace arduinoTimer;
