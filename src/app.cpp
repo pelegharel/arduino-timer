@@ -44,6 +44,8 @@ int main(int argc, char** argv) {
     cout << x << endl;
   }
 
-  LightOnTimerState<3> a(2);
+  LightOnTimerState<3> a(2, {
+    120min, 100min, 50min
+  });
   return 0;
 }
