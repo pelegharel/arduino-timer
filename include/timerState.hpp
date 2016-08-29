@@ -1,7 +1,6 @@
 #pragma once
 
 #include <chrono>
-#include <memory>
 #include <boost/optional.hpp>
 #include <array>
 #include "lightStates.hpp"
@@ -11,7 +10,7 @@ namespace arduinoTimer {
 
 using nanos = std::chrono::nanoseconds;
 
-template <int lightNum> class TimerState {
+class TimerState {
 
  public:
   virtual boost::optional<nanos> startTimerTime() = 0;
@@ -20,7 +19,7 @@ template <int lightNum> class TimerState {
       const boost::optional<nanos>& lastTimerTime, const nanos& deltaTime) = 0;
 };
 
-template <int lightNum> class OffTimerState : public TimerState<lightNum> {
+class OffTimerState : public TimerState {
  public:
   boost::optional<nanos> startTimerTime() { return boost::none; }
   boost::optional<nanos> updateTimerTime(
@@ -29,7 +28,7 @@ template <int lightNum> class OffTimerState : public TimerState<lightNum> {
   }
 };
 
-template <int lightNum> class LightTimerState : public TimerState<lightNum> {
+template <int lightNum> class LightTimerState : public TimerState {
  protected:
   const int lightIndex;
   const std::array<nanos, lightNum> nanosForLigtht;
